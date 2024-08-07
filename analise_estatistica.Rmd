@@ -1,0 +1,1440 @@
+---
+title: "Utilização da Bandagem Elástica Funcional no Tratamento Fonoaudiológico da Paralisia Facial Pós-AVC na Fase Aguda"
+author: "Sophia Araujo de Moraes"
+date: "2022-07-15"
+output: html_document
+---
+
+```{r pacotes, message=FALSE, warning=FALSE, include=FALSE}
+# tinytex::install_tinytex()
+setwd("C:/Users/Asus/Desktop/lab2")
+options(OutDec = ",")
+#Instlando e carregando pacotes
+loadpackages = function(x){
+  for(i in x){
+    if(!require(i, character.only = TRUE)){
+      install.packages(i, dependencies = TRUE)
+      library(i, character.only = TRUE)
+    }
+  }
+}
+loadpackages(c("ggcorrplot","haven","tinytex","scales","grid","tidyverse","ggpubr","readxl","readr","scales","dplyr","corrplot","devtools","kableExtra","knitr","modelsummary","forcats","sp","ggplot2","rgdal","classInt", "RColorBrewer","gridExtra",'nortest',"dunn.test","descr","datasets","remotes","stats","car","faraway","MASS","cowplot","MASS","pgirmess", "agricolae","gamlss"))
+
+```
+
+\newpage
+
+```{r echo=FALSE, fig.align="center", message=FALSE, warning=FALSE}
+# Importação dos dados
+pre <- read_excel("pre.xlsx")
+pos <- read_excel("pos.xlsx")
+corrigido <- read_excel("corrigido.xlsx", sheet= 3)
+modelo <- read_excel("modelo.xlsx",sheet=3)
+
+# Transformação das colunas para numeric
+corrigido$`Diferença LN /  T-CL` <- as.numeric(corrigido$`Diferença LN /  T-CL`)
+corrigido$`Diferença  CIO-CL` <- as.numeric(corrigido$`Diferença  CIO-CL`)
+corrigido$`Diferença  CEO-CL` <- as.numeric(corrigido$`Diferença CEO-CL`)
+corrigido$`Diferença LN/CIO-NA` <- as.numeric(corrigido$`Diferença LN/CIO-NA`)
+corrigido$`diferença do grau de incompetencia` <- as.numeric(corrigido$`diferença do grau de incompetencia`)
+attach(corrigido)
+
+corrigido<-rename(corrigido, `LN /  T-CL`= `Diferença LN /  T-CL`)
+corrigido<-rename(corrigido, `CIO-CL`=`Diferença  CIO-CL`)
+corrigido<-rename(corrigido, `CEO-CL`= `Diferença CEO-CL`)
+corrigido<-rename(corrigido, `LN/CIO-NA`= `Diferença LN/CIO-NA`)
+corrigido<-rename(corrigido, `Grau de incompetencia`= `diferença do grau de incompetencia`)
+
+#transformando para fator
+corrigido$Grupo<-as.factor(corrigido$Grupo)
+corrigido$Grupo<-factor(corrigido$Grupo, levels=c("1","2","3"),labels=c("Bandagem e massagem","Massagem","Sem intervenção"))
+
+corrigido$"SEXO  \r\n"<- as.factor(corrigido$"SEXO  \r\n")
+corrigido$"SEXO  \r\n"<-factor(corrigido$"SEXO  \r\n", levels=c("1","2"),labels=c("Masculino","Feminino"))
+
+corrigido$"HD" <- as.factor(corrigido$"HD")
+corrigido$"HD"<-factor(corrigido$"HD", levels=c("1","2","3"),labels=c("AVCi","AVCh","AVCi com transformação em AVCh"))
+
+corrigido$"NIHSS" <- as.factor(corrigido$"NIHSS") #CLASSIFICAÇÃO PRÉ INTERVENÇÃO     
+corrigido$"NIHSS"<-factor(corrigido$"NIHSS", levels=c("1","2","3"),labels=c("LNVE","Moderado","Grave"))
+
+corrigido$"MIF" <- as.factor(corrigido$"MIF") #MEDIDA DE INDEPENDÊNCIA FUNCIONAL (MIF)
+corrigido$"MIF"<-factor(corrigido$"MIF", levels=c("1","2","3","4"),labels=c("Assistência total","Assistência de até 50%","Assistência de até 25%","Independência Completa"))
+
+corrigido$"Lado acometido pela PF"  <- as.factor(corrigido$"Lado acometido pela PF" )
+corrigido$"Lado acometido pela PF"<-factor(corrigido$"Lado acometido pela PF", levels=c("1","2"),labels=c("Direito","Esquerdo"))
+
+corrigido$"TIPO DE PARALISIA FACIAL"  <- as.factor(corrigido$"TIPO DE PARALISIA FACIAL")
+corrigido$"TIPO DE PARALISIA FACIAL"<-factor(corrigido$"TIPO DE PARALISIA FACIAL",levels=c("1","2"),labels=c("Periférica","Central"))
+
+corrigido$"Grau da PF Pré"   <- as.factor(corrigido$"Grau da PF Pré" )
+corrigido$"Grau da PF Pré"<-factor(corrigido$"Grau da PF Pré",levels=c("2","3","4","5","6"),labels=c("Grau II","Grau  III","Grau IV","Grau V","Grau VI"))
+
+corrigido$"Grau da PF Pos"<- as.factor(corrigido$"Grau da PF Pos" )
+corrigido$"Grau da PF Pos"<-factor(corrigido$"Grau da PF Pos",levels=c("1","2","3","4","5"),labels=c("Grau I","GRAU II","GRAU  III","Grau IV","Grau V"))
+
+#renomeando
+corrigido<-plyr::rename(corrigido, c("SEXO  \r\n"= "Sexo"))
+
+#teste de normalidade
+
+#p1=shapiro.test(corrigido$`Diferença LN /  T-CL`)$p.value
+#p2=shapiro.test(corrigido$`Diferença  CIO-CL`)$p.value
+#p4= shapiro.test(corrigido$`Diferença  CEO-CL`)$p.value
+#p5=shapiro.test(corrigido$`Diferença LN/CIO-NA`)$p.value
+#p6= shapiro.test(corrigido$`diferença do grau de incompetencia`)$p.value
+
+variaveis = c("Diferença LN/ T-CL", "Diferença CIO-CL", "Diferença CEO-CL", "Diferença CIO-NA","Diferença do grau de incompetência")
+
+#pvalores = c(p1,p2,p4,p5,p6)
+
+#table1 = data.frame(variaveis, pvalores)
+#names(table1) = c("Variáveis",  "P-Valores")
+
+#table1 %>% 
+#  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+#  kbl(caption = "Teste de normalidade (shapiro Wilk)") %>%
+#  kable_classic_2(full_width = F) %>%
+#  kable_styling(latex_options = "HOLD_position")
+
+corrigido$HD<-factor(corrigido$HD, levels=c("AVCi","AVCh","AVCi com transformação em AVCh"),labels=c("AVCi","AVCh","AVCi transformado"))
+```
+
+Os nomes referentes aos níveis da variável HD foram alterados:
+"AVCi com transformação em AVCh" = "AVCi transformado"
+
+# Análise exploratória
+
+## Caracterização da amostra
+
+1) **Sexo**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+sexo <- c("Masculino", "Feminino")
+qtdsexo <- c("49", "29")
+frsexo <- c("63%", "37%")
+
+tbsexo <- data.frame(sexo, qtdsexo, frsexo)
+names(tbsexo) = c("Sexo",  "Quantidade", "Frequência")
+
+tbsexo%>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Frequências do Sexo") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+
+Ao observar a tabela e o gráfico, pode-se perceber uma presença masculina maior que a presença feminina
+
+2) **Idade**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.align="center",fig.width= 5, fig.height=4}
+ggplot(pre, aes(Idade)) +
+  geom_histogram(color= "black", fill= "#596b8f") +
+  labs(title = "Figura 1- Histograma da Idade",
+       x= "Idade", y="Quantidade")+ theme_bw()+ theme(axis.text = element_text(size = 6 , colour = "black"),axis.title = element_text(size = 7, colour = "black"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+idade <- c("Minimo", "1º Quartil", "Mediana", "Média", "3º Quartil", "Máximo")
+dcidade <- c("40",   "55,25",   "63",   "63,47",   "72,75",  "92")
+
+
+tbidade <- data.frame(idade, dcidade)
+names(tbidade) = c("Descritiva",  "Valores")
+
+tbidade%>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Informações descritivas da Idade") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width = 11, fig.height = 5,fig.align="center",}
+ggplot(data=pre,
+       aes(x = as.factor(Grupo), y = Idade, fill = as.factor(Grupo))) +
+  geom_boxplot()+ 
+  scale_fill_manual(values=c("#4fb6a7","#596b8f","#652177"), name="Grupo",
+                         labels=c("Bandagem e Massagem","Somente massagem","Sem intervenção")) +
+  labs(title = "Figura 2- Boxplot de pacientes do grupo por idade",
+                  x= "Grupo", y="Idade")  +
+  scale_x_discrete(labels=c("1" = "Bandagem e Massagem","2" = "Somente massagem", "3" ="Sem intervenção"))+ theme_bw()+ theme(axis.text = element_text(size = 9, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#summary(pre$Idade[pre$Grupo == "1"])
+#summary(pre$Idade[pre$Grupo == "2"])
+#summary(pre$Idade[pre$Grupo == "3"])
+
+min <- c("40", '41', "41")
+pq <- c("57", "50", "59,25")
+mediana <- c('65', '59,50', '64,50')
+media <- c("65,07", "60,25", "66,72")
+tq <- c("73", "67,50", "74")
+max <- c("89", "89", "92")
+grupos <- c("Bandagem e Massagem", "Somente Massagem", "Sem Intervenção")
+
+
+tbidadegp <- data.frame(grupos, min, pq, mediana, media, tq, max)
+names(tbidadegp) = c('Grupo',"Mínimo", "1º Quartil", "Mediana", "Média", "3º Quartil", "Máximo")
+
+
+tbidadegp%>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Informações descritivas da Idade por Tratamento") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+
+```
+
+
+O grupo 3 aparenta ter uma idade mediana um pouco maior que os demais grupos.
+As idades de maior frequênncia são: 57, 59, 64, 65, 73, 79, 81.
+
+
+3) **HD** 
+
+- Classificação:
+
+AVCi -1 = Isquêmico
+\
+AVCh - 2 = Hemorrágico
+\
+AVCi transformado - 3 = Isquêmico Transforma em Hemorrágico
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hd <- c("AVCi", "AVCh", "AVCi transformado")
+qtdhd <- c("74", "2", "2")
+frhd <- c("95%", "2,5%", "2,5%")
+
+tbhd <- data.frame(hd, qtdhd, frhd)
+names(tbhd) = c("Classificação HD",  "Quantidade", "Frequência Relativa")
+
+tbhd%>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Tabela de Frequências da Classificação HD") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Ao observar o gráfico e a tabela, pode-se observar uma presença majoritária do AVCi, 74 vs 4 (AVCh e AVCi com transformação em AVCh)
+
+4) **NIHSS**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+nihss <- c("Leve", "Moderado", "Grave")
+qtdnihss <- c("18", "47", "13")
+frnihss <- c("23%", "60%", "17%")
+
+tbnihss <- data.frame(nihss, qtdnihss, frnihss)
+names(tbnihss) = c("Classificação NIHSS",  "Quantidade", "Frequência Relativa")
+
+tbnihss %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Frequências da Classificação NIHSS") %>% 
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+
+```{r echo=FALSE, fig.align="center", fig.width= 5, fig.height=4, message=FALSE, warning=FALSE}
+ggplot(data=pre,
+       aes(x=as.factor(NHSS),fill=as.factor(NHSS) )) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) + 
+  labs(title = "Figura 3- Gráfico de barras da quantidade de pacientes por fator NIHSS",
+       x= "Classificação NIHSS", y="Porcentagem") +
+  scale_x_discrete(labels=c("1" = "Leve", "2" ="Moderado", "3" ="Grave" )) +
+  scale_y_continuous(labels = scales::percent,)+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"),legend.position = "none")+scale_fill_brewer(palette="BuPu")
+```
+A maior quatidade de pacientes da amostra se enquadra em acometimento de AVC moderado
+pela classificação NIHSS
+
+\newpage
+
+5) **MIF - Medida de Independência Funcional** 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mif <- c("Assitência Total", "Dependência Modificada 50%", "Dependência Modificada 25%", "Independência completa/modificada")
+qtdmif <- c("3", "45", "14", "16")
+frmif <- c("4%", "58%", "18%", "20%")
+
+tbmif <- data.frame(mif, qtdmif, frmif)
+names(tbmif) = c("Medida de Independência Funcional",  "Quantidade", "Frequência Relativa")
+
+tbmif %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Frequências da Medida de Independência Funcional") %>% 
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=pre,
+       aes(x=as.factor(MIF), fill=as.factor(MIF))) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))+
+  labs(title = "Figura 4 - Gráfico de barras da quantidade de pacientes por fator MIF",
+                  x= "Classificação MIF", y="Porcentagem") +
+  scale_x_discrete(labels=c("1" = "Assistência total", "2" ="Assitência 50%", "3" =" Assistência 25%", "4" = "Independência" )) +
+  scale_y_continuous(labels = scales::percent,)+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"),legend.position = "none")+scale_fill_brewer(palette="BuPu")
+```
+
+Na amostra há uma presença maior de pessoas com a medida de independência funcional de: dependência modificada de 50%  assistência na tarefa. 
+
+6) **Lado Acometido**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+la <- c("Direito", "Esquerdo")
+qtdla <- c("28", "50")
+frla <- c("36%", "64%")
+
+tbla <- data.frame(la, qtdla, frla)
+names(tbla) = c("Lado Acometido",  "Quantidade", "Frequência Relativa")
+
+tbla %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Frequências do Lado Acometido") %>% 
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+A maior parte dos AVCs acometem o lado esquerdo na amostra.
+
+\newpage
+
+7) **Tipo de Paralisia**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tp <- c("Periférica", "Central")
+qtdtp <- c("4", "74")
+frtp <- c("5%", "95%")
+
+tbtp <- data.frame(tp, qtdtp, frtp)
+names(tbtp) = c("Tipo de Paralisia",  "Quantidade", "Frequência Relativa")
+
+tbtp %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Frequências do Tipo de Paralisia") %>% 
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Ao observar a tabela e o gráfico pode-se perceber que a maioria dos tipos de paralisia presentes na amostra são do tipo central.
+
+8) **Grau da Paralisida Facial pré Intervenção**
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+gpre <- c("Grau II - Leve", "Grau III - Moderada", "Grau IV - Moderadamente grave", "Grau V - Grave", "Grau VI - Paralisia total")
+qtdgpre <- c("16", "24", "15", "20", "3")
+frgpre <- c("20%", "31%", "19%","26%", "4%")
+
+tbgpre <- data.frame(gpre, qtdgpre, frgpre)
+names(tbgpre) = c("Grau da Paralisia Facial Pré Intervenção",  "Quantidade", "Frequência Relativa")
+
+tbgpre %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Tabela 8- Frequências do Tipo de Paralisia") %>% 
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width = 11, fig.height = 5}
+cores<- colorRampPalette(c("#4fb6a7","#652177"))
+ggplot(data=pre,
+       aes(x=as.factor(GrauPFpre))) +
+  geom_bar(aes(fill = as.factor(Grupo)), position = "dodge") +
+  labs(title = "Figura 5 - Gráfico de barras da quantidade de pacientes por Grau PF pré",
+       x= "Grau Paralisia Facial", y="Quantidade") +
+   scale_fill_manual(values=cores(length(unique(pre$Grupo))), name="Grupo",
+                         labels=c("Bandagem e Massagem","Somente massagem","Sem intervenção")) +
+  scale_x_discrete(labels=c("2" = "Leve", "3" ="Moderada", "4" = "Moderadamente grave", "5"= "Grave", "6" = "Paralisia Total" ))+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+```
+
+Ao observar o gráfico da classificação do grau da paralisia facial pré pode-se perceber que há a presença de todos os grupos nos graus de paralisia com exceção da paralisia total que só tem a presença dos grupos *Bandagem e massagem* e *somente massagem*, o que pode ocasionar em uma diferença entre os grupos para o grau pré.
+
+## Análise da composição dos grupos
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#idade1 <- shapiro.test(pre$Idade[pre$Grupo == "1"])
+#idade2 <- shapiro.test(pre$Idade[pre$Grupo == "2"])
+#idade3 <- shapiro.test(pre$Idade[pre$Grupo == "3"])
+
+va <- c("Bandagem e Massagem", "Massagem", "Sem intervenção")
+pv <- c("0,9034", "0,3786", "0,9288")
+
+table1 = data.frame(va, pv)
+names(table1) = c("Grupo",  "P-Valores")
+
+table1 %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Teste de normalidade da Idade dos Grupos (shapiro Wilk)") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+
+```
+
+Para a idade dos grupos não rejeitou-se $H_0$, ou seja, os dados seguem normalidade.
+
+ - Teste **ANOVA** para avaliar se há diferença entre os grupos com relação à idade
+ Hipóteses:
+ \
+ $H_0$: Em todos os níveis Grupos as médias das idades são iguais;
+ \
+ $H_1$: Em pelo menos um dos grupos a média das idades é diferente.  
+ 
+ - Teste $\chi²$ **(Qui-quadrado)** para avaliar as variáveis: Sexo, HD, NIHSS, MIF, Lado Acometido, Tipo de Paralisia e o Grau da Paralisia Facial pré.
+ \
+ Hipóteses
+ \
+ 
+ $H_0$: Os grupos são homogêneos;
+ \
+ $H_1$: Os grupos não são homogêneos.
+
+```{r eval=FALSE, include=FALSE}
+
+sapply(pre, class)
+
+pre <- pre %>%
+  mutate(
+    Grupo = as.factor(Grupo)
+  )
+
+mod <- aov(formula = Idade ~ Grupo, pre)
+summary(mod)
+
+chisq.test(pre$Grupo, pre$Sexo) #Não há homogeneidade
+chisq.test(pre$Grupo, pre$HD, simulate.p.value = TRUE)
+chisq.test(pre$Grupo, pre$NHSS, simulate.p.value = TRUE)
+chisq.test(pre$Grupo, pre$MIF, simulate.p.value = TRUE) # Não há
+chisq.test(pre$Grupo, pre$LadoAcometido)
+chisq.test(pre$Grupo, pre$TipoParalisia, simulate.p.value = TRUE)
+chisq.test(pre$Grupo, pre$GrauPFpre, simulate.p.value = TRUE)
+
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+variaveis = c("Idade", "Sexo", "HD", "NIHSS","MIF", "Lado Acometido", "Tipo de Paralisia","Grau pré")
+
+pvalores = c("0,134","0,004074", "0,919", "0,2279", "0,01249", "0,1273", "0,8411", "0,7236" )
+testes <- c('Anova', "x²", "X²", "X²", "X²", "X²", "X²", 'X²')
+
+
+table1 = data.frame(variaveis, pvalores, testes)
+names(table1) = c("Variáveis",  "P-Valores", 'Teste')
+
+table1 %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Teste para a diferença entre os grupos em relação a:") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
+
+Dessa forma, pode-se perceber que para o sexo e para a medida de independência funcional há diferença entre os grupos, ou seja, não há a homogeneidade esperada, nesses grupos. 
+
+
+- **Comparação entre Grau Pré e Grau Pós:**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width = 11, fig.height = 5}
+x<- ggplot(data=pre,
+       aes(x=as.factor(GrauPFpre), fill = as.factor(Grupo), )) +
+  geom_bar() +
+  labs(title = "Figura 6 - Gráfico de barras do Grau PF pré",
+       x= "Grau Paralisia Facial", y="Quantidade") +
+   scale_fill_manual(values=cores(length(unique(pre$Grupo))), name="Grupo",
+                         labels=c("Bandagem e Massagem","Somente massagem","Sem intervenção")) +
+  scale_x_discrete(labels=c("2" = "Leve", "3" ="Moderada", "4" = "Moderadamente grave", "5"= "Grave", "6" = "Paralisia Total" ))+ guides(fill=FALSE)+ theme_bw()+ theme(axis.text.x = element_text(angle = 20, hjust = 1))+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+ 
+ 
+y <-  ggplot(data=pre,
+       aes(x=as.factor(GrauPFpos), fill = as.factor(Grupo))) +
+  geom_bar() +
+  labs(title = "Figura 7 - Gráfico de barras do Grau PF pós",
+       x= "Grau Paralisia Facial", y="Quantidade") +
+   scale_fill_manual(values=cores(length(unique(pre$Grupo))), name="Grupo",
+                         labels=c("Bandagem e Massagem","Somente massagem","Sem intervenção")) +
+  scale_x_discrete(labels=c("1" = "Normal","2" = "Leve", "3" ="Moderada", "4" = "Moderada-grave", "5"= "Grave", "6" = "Paralisia Total" ))+ theme_bw()+ theme(axis.text.x = element_text(angle = 20, hjust = 1))+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grid.arrange(x, y, nrow = 1)
+```
+
+A comparação entre os grupos mostra que todos os pacientes que estavam classificados como paralisia total, regrediram já que não há mais presença desse grupo na classificação pós, outro comportamento relevante observado é que dentre os pacientes que voltaram para a classificação normal, nenhum se faz parte do grupo sem interveção apesar de haver pacientes se enquadrando na classificação leve, ou seja, aparentemente nenhum desses pacientes ou dos presentes em graus maiores do grupo sem intervenção voltou para o grau considerado normal.
+
+\newpage
+
+## Análise das variáveis respostas
+
+```{r echo=FALSE, fig.align="center", message=FALSE, warning=FALSE}
+bd1_sum <- corrigido %>%
+  group_by(Grupo) %>%
+  summarize(Min= min(`LN /  T-CL`), Max= max(`LN /  T-CL`),Mean = mean(`LN /  T-CL`),Median=median(`Diferença LN /  T-CL`),SD = sd(`LN /  T-CL`)) %>%
+  ungroup()
+
+bd1_sum<- as.data.frame(bd1_sum)
+
+#Diferença  CIO-CL
+bd2_sum <- corrigido %>%
+  group_by(Grupo) %>%
+  summarize(Min= min(`CIO-CL`), Max= max(`CIO-CL`),Mean = mean(`CIO-CL`),Median=median(`CIO-CL`),SD = sd(`CIO-CL`)) %>%
+  ungroup()
+
+bd2_sum<- as.data.frame(bd2_sum)
+
+#`Diferença  CEO-CL`
+bd3_sum <- corrigido %>%
+  group_by(Grupo) %>%
+  summarize(Min= min(`CEO-CL`), Max= max(`CEO-CL`),Mean = mean(`CEO-CL`),Median=median(`CEO-CL`),SD = sd(`CEO-CL`)) %>%
+  ungroup()
+
+bd3_sum<- as.data.frame(bd3_sum)
+
+
+#`Diferença ...`
+
+bd4_sum <- corrigido %>%
+  group_by(Grupo) %>%
+  summarize(Min= min(`LN/CIO-NA`), Max= max(`LN/CIO-NA`),Mean = mean(`LN/CIO-NA`),Median=median(`LN/CIO-NA`),SD = sd(`LN/CIO-NA`)) %>%
+  ungroup()
+
+bd4_sum<- as.data.frame(bd4_sum)
+
+
+#`diferença do grau de incompetencia`
+
+bd5_sum <- corrigido %>%
+  group_by(Grupo) %>%
+  summarize(Min= min(`Grau de incompetencia`), Max= max(`Grau de incompetencia`),Mean = mean(`Grau de incompetencia`),Median=median(`Grau de incompetencia`),SD = sd(`Grau de incompetencia`)) %>%
+  ungroup()
+
+bd5_sum<- as.data.frame(bd5_sum)
+
+
+#funcao
+quickmerge <- function(df1, df2) {
+  df1.names <- names(df1)
+  df2.names <- names(df2)
+  df2.add <- setdiff(df1.names, df2.names)
+  df1.add <- setdiff(df2.names, df1.names)
+  if(length(df2.add) > 0) {
+    for(i in 1:length(df2.add)) {
+      df2[df2.add[i]] <- NA
+    }
+  }
+  if(length(df1.add) > 0) {
+    for(i in 1:length(df1.add)) {
+      df1[df1.add[i]] <- NA
+    }
+  }
+  return(rbind(df1, df2))
+}
+
+table1 <- quickmerge(bd1_sum, bd2_sum)
+
+table11 <- quickmerge(table1, bd3_sum)
+
+table111 <- quickmerge(table11, bd4_sum)
+
+table1111 <- quickmerge(table111, bd5_sum)
+
+
+table1111[,-1]<- (round(table1111[,-1],4)) #ARREDONDADO PARA 2 CASAS DECIMAIS
+
+varios_bd1<-table1111
+
+attach(varios_bd1)
+colnames(varios_bd1)<-c("Grupo", "Mínimo", "Máximo","Média","Mediana","Desvio Padrão")
+
+varios_bd1 %>%
+  kbl(caption="Análise descritiva das variáveis respostas com relação aos grupos de tratamento ") %>%
+  add_header_above(c(" " = 1, "Diferença pós - pré" = 5),bold = TRUE) %>%
+  pack_rows(index = c("Diferença LN/ T-CL"= 3, "Diferença CIO-CL"= 3, "Diferença CEO-CL" = 3, "Diferença CIO-NA" = 3,"Diferença do grau de incompetência"=3)) %>%
+  kable_classic(full_width = F,font_size = 10) %>%
+  kable_styling(latex_options = "HOLD_position") %>%
+  row_spec(0, bold = TRUE, italic = TRUE, hline_after = TRUE, font_size = 10, align = "c")
+
+```
+
+```{r echo=FALSE, fig.align="center", fig.width= 5, fig.height=4, message=FALSE, warning=FALSE}
+
+corrigido %>% tidyr::pivot_longer(cols = c(`LN /  T-CL`, `CIO-CL`,
+                                           `CEO-CL`,`LN/CIO-NA`,`Grau de incompetencia`),
+                                  names_to = "Variáveis resposta",
+                                  values_to = "Diferença pós - pré") %>%
+  ggplot(aes(y = `Diferença pós - pré`, x = `Variáveis resposta`,fill= `Variáveis resposta` )) + geom_boxplot()+ labs(title = "Figura 8- Boxplot das diferença entre \n pós e pré variáveis respostas") + theme_bw()+scale_fill_brewer(palette="BuPu")+ theme(axis.text.x = element_text(angle = 20, hjust = 1))+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))#+ facet_wrap(~Tipo, scales = "free_y")
+```
+
+```{r echo=FALSE, fig.align="center", fig.width= 5, fig.height=4, message=FALSE, warning=FALSE}
+
+corrigido %>% tidyr::pivot_longer(cols = c(`LN /  T-CL`, `CIO-CL`,
+                                           `CEO-CL`,`LN/CIO-NA`,`Grau de incompetencia`),
+                                  names_to = "Variáveis resposta",
+                                  values_to = "Diferença pós - pré") %>%
+  ggplot(aes(y = `Diferença pós - pré`, x = `Variáveis resposta`, fill= `Variáveis resposta`)) + geom_boxplot(outlier.shape = NA)+ labs(title ="Figura 9- Boxplot das diferença entre \n pós e pré variáveis respostas sem outliers") + theme_bw()+ theme(axis.text.x = element_text(angle = 20, hjust = 1))+  scale_y_continuous(limits = c(-25, 15))+scale_fill_brewer(palette="BuPu")+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+```
+
+\newpage
+
+# Análise de correlação das variáveis respostas
+
+```{r eval=FALSE, fig.align="center", fig.height=4, fig.width=5, message=FALSE, warning=FALSE, include=FALSE}
+p1=cor(corrigido$`Grau de incompetencia`,corrigido$`CEO-CL`)
+p2=cor(corrigido$`Grau de incompetencia`,corrigido$`CIO-CL`)
+p3=cor(corrigido$`Grau de incompetencia`,corrigido$`LN/CIO-NA`)
+p4=cor(corrigido$`Grau de incompetencia`,corrigido$`LN /  T-CL`)
+p5=cor(corrigido$`CIO-CL`,corrigido$`CEO-CL`)
+p6=cor(corrigido$`CIO-CL`,corrigido$`LN/CIO-NA`)
+p7=cor(corrigido$`CIO-CL`,corrigido$`LN /  T-CL`)
+p8=cor(corrigido$`LN/CIO-NA`,corrigido$`CEO-CL`)
+p9=cor(corrigido$`LN /  T-CL`,corrigido$`CEO-CL`)
+p10=cor(corrigido$`LN/CIO-NA`,corrigido$`LN /  T-CL`)
+
+
+
+COR = c(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10)
+var= c("Grau de incompetencia e CEO-CL","Grau de incompetencia e CIO-CL","Grau de incompetencia e LN/CIO-NA","Grau de incompetencia e LN /  T-CL","CIO-CL e CEO-CL","CIO-CL e LN/CIO-NA","CIO-CL e LN /  T-CL","LN/CIO-NA e CEO-CL ","LN /  T-CL e  CEO-CL","LN/CIO-NA e LN /  T-CL")
+table1 = data.frame(var,COR)
+names(table1) = c("Variáveis",  "Correlações")
+
+table1 %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Correlações") %>%
+  kable_classic_2(full_width = F) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+\
+1) **Grau de incompetencia X Diferença CEO-CL** 
+
+Coeficiente de correlação de Pearson: 0,243
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`CEO-CL`, y = corrigido$`Grau de incompetencia`)) +xlab("Diferença CEO-CL") + ylab("Diferença do grau de Incompetencia")+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 10- Diagrama de dispersão Diferença CEO-CL ") +geom_label(
+    label="0,243", 
+    x=32,
+    y=0.8,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    #fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+2) **Grau de incompetencia X Diferença CIO-CL**
+
+Coeficiente de correlação de Pearson: 0,222
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`CIO-CL`, y = corrigido$`Grau de incompetencia`)) +xlab("Diferença CIO-CL") + ylab("Diferença do grau de Incompetencia")+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 11-Diagrama de dispersão Diferença CIO-CL ") +geom_label(
+    label="0,222", 
+    x=11,
+    y=0.8,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black")) +scale_color_brewer(palette="BuPu")
+```
+
+\newpage
+
+3) **Grau de incompetencia X Diferença LN/CIO-NA**
+
+Coeficiente de correlação de Pearson: 0,0872
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`LN/CIO-NA`, y = corrigido$`Grau de incompetencia`)) +xlab("Diferença LN/CIO-NA") + ylab("Diferença do grau de Incompetencia")+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 12- Diagrama de dispersão Diferença LN/CIO-NA ") +geom_label(
+    label="0,0872", 
+    x=15,
+    y=0.8,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+4) **Grau de incompetencia X Diferença LN / T-CL**	
+
+Coeficiente de correlação de Pearson: 0,154
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`LN /  T-CL`, y = corrigido$`Grau de incompetencia`)) +xlab("Diferença LN / T-CL") + ylab("Diferença do grau de Incompetencia")+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 13- Diagrama de dispersão Diferença LN/T-CL ") +geom_label(
+    label="0,154", 
+    x=36,
+    y=0.8,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black")) +scale_color_brewer(palette="BuPu")
+```
+
+\newpage
+
+5) **Diferença CIO-CL X Diferença CEO-CL**
+
+Coeficiente de correlação de Pearson: 0,166
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+
+ggplot(data = corrigido, aes(x = corrigido$`CEO-CL`, y = corrigido$`CIO-CL`))+xlab("Diferença CEO-CL") + ylab("Diferença CIO-CL")+
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 14 -Diagrama de dispersão Diferença CEO-CL E CIO-CL ") +geom_label(
+    label="0,166", 
+    x=32,
+    y=11,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+6) **Diferença CIO-CL X Diferença LN/CIO-NA**	
+
+Coeficiente de correlação de Pearson: 0,104
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+
+ggplot(data = corrigido, aes(x = corrigido$`LN/CIO-NA`, y = corrigido$`CIO-CL`))+xlab("Diferença LN/CIO-NA") + ylab("Diferença CIO-CL")+ 
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 15- Diagrama de dispersão Diferença CIO-CL e LN/CIO-NA") +geom_label(
+    label="0,104", 
+    x=16,
+    y=10,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+\newpage
+
+7) **Diferença LN /  T-CL X Diferença CIO-CL**
+
+Coeficiente de correlação de Pearson: 0,0406
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+
+ggplot(data = corrigido, aes(x = corrigido$`LN /  T-CL`, y = corrigido$`CIO-CL`))+xlab("Diferença LN /  T-CL") + ylab("Diferença CIO-CL")+ 
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 16- Diagrama de dispersão Diferença CIO-CL e LN/T-CL ") +geom_label(
+    label="0,0406", 
+    x=38,
+    y=10,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+8) **Diferença LN/CIO-NA X Diferença CEO-CL** 
+
+Coeficiente de correlação de Pearson: 0,239
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`LN/CIO-NA`, y = corrigido$`CEO-CL`)) +xlab("Diferença LN/CIO-NA") + ylab("Diferença CEO-CL")+ 
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 17- Diagrama de dispersão Diferença CEO-CL E LN/CIO-NA") +geom_label(
+    label="0,239", 
+    x=16,
+    y=29,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+\newpage
+
+9) **Diferença LN / T-CL X Diferença CEO-CL** 
+
+Coeficiente de correlação de Pearson: 0,00844
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+ggplot(data = corrigido, aes(x = corrigido$`LN /  T-CL`, y = corrigido$`CEO-CL`)) +xlab("Diferença LN /  T-CL") + ylab("Diferença CEO-CL")+ 
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 18- Diagrama de dispersão Diferença CEO-CL E LN/T-CL ") +geom_label(
+    label="0,00844", 
+    x=38,
+    y=30,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+10) **Diferença LN / T-CL X Diferença LN/CIO-NA**
+
+Coeficiente de correlação de Pearson: -0,17
+
+```{r echo=FALSE, fig.align="center", fig.width= 6, fig.height=3, message=FALSE, warning=FALSE}
+
+ggplot(data = corrigido, aes(x = corrigido$`LN /  T-CL`, y = corrigido$`LN/CIO-NA`)) +xlab("Diferença LN /  T-CL") + ylab("Diferença LN/CIO-NA")+ 
+  geom_point(aes(colour = factor(GRUPO)))+ 
+  guides(color=guide_legend(title="Grupo de tratamento"))+ labs(title = "Figura 19- Diagrama de dispersão Diferença LN/T-CL e LN/CIO-NA ") +geom_label(
+    label="-0,17", 
+    x=38,
+    y=16,
+    label.padding = unit(0.55, "lines"), # Rectangle size around label
+    label.size = 0.35,
+    color = "black",
+    fill="#dedede"
+  )+ theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))+scale_color_brewer(palette="BuPu")
+```
+
+\newpage
+
+# Teste de hipóteses sobre as variáveis respostas
+\
+1) **Com relação aos grupos**
+
+- Teste de médias: Teste de Kruskal Wallis
+
+Hipóteses:
+\
+$H_0$:  Em todos os níveis Grupos as médias das diferenças são iguais;
+\
+$H_1$: Se em pelo menos um grupo as médias das diferenças é diferente.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$Grupo == "Bandagem e massagem"]) #0,6673- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$Grupo == "Massagem"]) #0,1412- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$Grupo == "Sem intervenção"]) #0,000594- rejeito a hipotese de normalidade, desse modo utilizaremos método não paramétrico
+
+```
+
+\
+2) **Com relação ao sexo**
+
+- Teste de mediana: Teste de Mann-Whitney
+
+Hipóteses:
+\
+$H_0$:  As Razões medianas das variáveis respostas, para sexo feminino e para o sexo masculino, são iguais;
+\
+$H_1$: As Razões medianas das variáveis respostas, para sexo feminino e para o sexo masculino, são diferentes.
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$Sexo == "Masculino"]) #0,8304- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$Sexo == "Feminino"]) #0,3994- não rejeito a hipotese de normalidade
+
+```
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+leveneTest(corrigido$`CIO-CL` ~ corrigido$Sexo)# Variâncias iguais
+
+```
+\
+- Teste T
+
+Hipóteses:
+\
+$H_0$: Não há diferença entre as médias  Diferença CIO-CL, considerando o sexo;
+\
+$H_1$: Há diferença entre as médias da  Diferença CIO-CL, considerando o sexo (Masculino, feminino)
+
+\
+3) **Com relação à HD**
+
+A variável HD foi categorizada em 3 grupos:
+  
+  1- AVCi;
+  
+  2- AVCh;
+  
+  3- AVCi transformada
+\
+- Teste de médias: **Teste de Kruskal Wallis**
+
+Hipóteses:
+\
+$H_0$: Em todos os níveis da variável HD, as médias das diferenças são iguais;
+\
+$H_1$: Se em pelo menos um grupo as médias das diferenças é diferente.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$HD == "AVCi"]) #0,2962- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$HD == "AVCh"]) #Erro:sample size must be between 3 and 5000
+#shapiro.test(corrigido$`CIO-CL`[corrigido$HD == "AVCi com transformação em AVCh"]) ERRO:sample size must be between 3 and 5000
+```
+
+\
+4) **Com relação à NIHSS**
+
+NIHSS - CLASSIFICAÇÃO PRÉ INTERVENÇÃO, a variável foi categorizada na forma:
+  
+  1- LNVE;
+  
+  2- MODERADO;
+  
+  3- GRAVE.
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$NIHSS == "LNVE"]) #0,9726- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$NIHSS == "Moderado"]) #0,1264- NÃO REJEITO A HO DE NORMALIDADE
+shapiro.test(corrigido$`CIO-CL`[corrigido$NIHSS == "Grave"]) #0,04008: rejeito a hipótese de normalidade
+
+```
+
+- Teste de médias: Teste de Kruskal Wallis
+\
+Hipóteses:
+\
+$H_0$: Em todos os níveis da variável NIHSS, as médias das diferenças são iguais;
+\
+$H_1$: Se em pelo menos um grupo as médias das diferenças é diferente.
+
+\
+5) **Com relação à variável MIF**
+
+MEDIDA DE INDEPENDÊNCIA FUNCIONAL (MIF)- CLASSIFICAÇÃO:
+
+  1- ASSITÊNCIA TOTAL;
+  
+  2- DEPENDENCIA MODIFICADA COM ASSISTÊNCIA EM ATÉ 50% NA TAREFA;  
+  
+  3- DEPENDENCIA MODIFICADA COM ASSISTÊNCIA DE ATÉ 25% NA TAREFA;      
+  
+  4- INDEPÊNCIA COMPLNTA / MODIFICADA - PRÉ.
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$MIF == "Assistência total"]) #0,5087- não rejeito a hipotese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$MIF == "Assistência de até 50%"]) #0,009491- REJEITO A HO DE NORMALIDADE
+shapiro.test(corrigido$`CIO-CL`[corrigido$MIF == "Assistência de até 25%"]) #0,,6315: não rejeito a hipótese de normalidade
+shapiro.test(corrigido$`CIO-CL`[corrigido$MIF == "Independência Completa"]) #0,0,2668- não rejeito a hipotese de normalidade
+
+```
+\
+- Teste de médias: Teste de Kruskal Wallis
+\
+Hipóteses:
+\
+$H_0$: Em todos os níveis da variável MIF, as médias das diferenças são iguais;
+\
+$H_1$: Se em pelo menos um grupo as médias das diferenças é diferente.
+
+\
+6) **Com relação à variável Lado acometido**
+
+Lado acommetido pela PF, categorias:                         
+
+  1- DIREITO;           
+  
+  2- ESQUERDO.
+\
+- Teste de mediana: Teste de Mann-Whitney
+\
+Hipóteses:
+\
+$H_0$:  As Razões medianas das variáveis respostas, para as categorias da variável LADO ACOMETIDO iguais;
+\
+$H_1$: As Razões medianas das variáveis respostas, para as categorias da variável LADO ACOMETIDO são diferentes.
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+##varificando se a normalidade é verificada nos nívels da `Diferença  CIO-CL` com relação aos grupos
+shapiro.test(corrigido$`CIO-CL`[corrigido$`Lado acometido pela PF`== "Direito"]) #0,5173- não rejeito a hipotese de normalidade
+#shapiro.test(corrigido$`CIO-CL`[corrigido$`Lado acommetido pela PF` == "Esquerdo"])  Erro:sample size must be between 3 and 5000
+
+```
+
+\
+7) **Com relação ao Tipo de paralisia facial**
+
+TIPO DE PARALISIA FACIAL, categorias:
+
+  1- PERIFÉRICA;    
+  
+  2- CENTRAL.
+
+
+- Teste de mediana: Teste de Mann-Whitney
+\
+Hipóteses:
+\
+$H_0$:  As Razões medianas das variáveis respostas, para as categorias da variável Tipo de paralisia facial são iguais;
+\
+$H_1$: As Razões medianas das variáveis respostas, para as caegorias da variável Tipo de paralisia facial são diferentes.
+
+- Teste T
+
+Hipóteses:
+\
+$H_0$: Não há diferença entre as médias  Diferença CIO-CL, considerando o Tipo de paralisia facial;
+\
+$H_1$: Há diferença entre as médias da  Diferença CIO-CL, considerando o Tipo de paralisia facial.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## com relação ao grupo
+#`Diferença LN /  T-CL`
+teste_krusk1= kruskal.test(corrigido$`LN /  T-CL` ~ corrigido$Grupo, data = corrigido)
+pvalor_kruskal1= teste_krusk1$p.value
+
+#`Diferença  CIO-CL`
+teste_krusk2= kruskal.test(corrigido$`CIO-CL` ~ corrigido$Grupo, data = corrigido)
+pvalor_kruskal2= teste_krusk2$p.value
+
+#`Diferença  CEO-CL`
+teste_krusk3= kruskal.test(corrigido$`CEO-CL` ~ corrigido$Grupo, data = corrigido)
+pvalor_kruskal3= teste_krusk3$p.value
+
+#`Diferença LN/CIO-NA`
+teste_krusk4= kruskal.test(corrigido$`LN/CIO-NA` ~ corrigido$Grupo, data = corrigido)
+pvalor_kruskal4= teste_krusk4$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_krusk5= kruskal.test(corrigido$`Grau de incompetencia` ~ corrigido$Grupo, data = corrigido)
+pvalor_kruskal5= teste_krusk5$p.value
+
+
+## sexo
+
+#`Diferença LN /  T-CL`
+teste_mann1= wilcox.test(corrigido$`LN /  T-CL` ~ corrigido$Sexo, data = corrigido)
+teste_mann1_pvalor= teste_mann1$p.value
+
+#`Diferença  CIO-CL`
+testet=t.test(corrigido$`CIO-CL` ~ corrigido$Sexo, var.equal = TRUE)
+testet_pvalor= testet$p.value
+
+#`Diferença  CEO-CL`
+teste_mann2= wilcox.test(corrigido$`CEO-CL` ~ corrigido$Sexo, data = corrigido)
+teste_mann2_pvalor= teste_mann2$p.value
+
+#`Diferença LN/CIO-NA`
+teste_mann3= wilcox.test(corrigido$`LN/CIO-NA` ~ corrigido$Sexo, data = corrigido)
+teste_mann3_pvalor= teste_mann3$p.value
+
+#`diferença do grau de incompetencia`
+teste_mann4= wilcox.test(corrigido$`Grau de incompetencia` ~ corrigido$Sexo, data = corrigido)
+teste_mann4_pvalor= teste_mann4$p.value
+
+##HD
+#`Diferença LN /  T-CL`
+teste_kruskal6= kruskal.test(corrigido$`LN /  T-CL` ~ corrigido$HD, data = corrigido)
+pvalor_kruskal6= teste_kruskal6$p.value
+
+#`Diferença  CIO-CL`
+teste_kruskal7= kruskal.test(corrigido$`CIO-CL` ~ corrigido$HD, data = corrigido)
+pvalor_kruskal7= teste_kruskal7$p.value
+
+#`Diferença  CEO-CL`
+teste_krusk8= kruskal.test(corrigido$`CEO-CL` ~ corrigido$HD, data = corrigido)
+pvalor_kruskal8= teste_krusk8$p.value
+
+#`Diferença LN/CIO-NA`
+teste_krusk9= kruskal.test(corrigido$`LN/CIO-NA` ~ corrigido$HD, data = corrigido)
+pvalor_kruskal9= teste_krusk9$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_krusk10= kruskal.test(corrigido$`Grau de incompetencia` ~ corrigido$HD, data = corrigido)
+pvalor_kruskal10= teste_krusk10$p.value
+
+##NIHSS
+#`Diferença LN /  T-CL`
+teste_kruskal11= kruskal.test(corrigido$`LN /  T-CL` ~ corrigido$NIHSS, data = corrigido)
+pvalor_kruskal11= teste_kruskal11$p.value
+
+#`Diferença  CIO-CL`
+teste_kruskal12= kruskal.test(corrigido$`CIO-CL` ~ corrigido$NIHSS, data = corrigido)
+pvalor_kruskal12= teste_kruskal12$p.value
+
+#`Diferença  CEO-CL`
+teste_krusk13= kruskal.test(corrigido$`CEO-CL` ~ corrigido$NIHSS, data = corrigido)
+pvalor_kruskal13= teste_krusk13$p.value
+
+#`Diferença LN/CIO-NA`
+teste_krusk14= kruskal.test(corrigido$`LN/CIO-NA` ~ corrigido$NIHSS, data = corrigido)
+pvalor_kruskal14= teste_krusk14$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_krusk115= kruskal.test(corrigido$`Grau de incompetencia` ~ corrigido$NIHSS, data = corrigido)
+pvalor_kruskal15= teste_krusk115$p.value
+
+##MIF
+#`Diferença LN /  T-CL`
+teste_kruskal16= kruskal.test(corrigido$`LN /  T-CL` ~ corrigido$MIF, data = corrigido)
+pvalor_kruskal16= teste_kruskal16$p.value
+#`Diferença  CIO-CL`
+teste_kruskal17= kruskal.test(corrigido$`CIO-CL` ~ corrigido$MIF, data = corrigido)
+pvalor_kruskal17= teste_kruskal17$p.value
+
+#`Diferença  CEO-CL`
+teste_krusk18= kruskal.test(corrigido$`CEO-CL` ~ corrigido$MIF, data = corrigido)
+pvalor_kruskal18= teste_krusk18$p.value
+
+#`Diferença LN/CIO-NA`
+teste_krusk19= kruskal.test(corrigido$`LN/CIO-NA` ~ corrigido$MIF, data = corrigido)
+pvalor_kruskal19= teste_krusk19$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_krusk20= kruskal.test(corrigido$`Grau de incompetencia` ~ corrigido$MIF, data = corrigido)
+pvalor_kruskal20= teste_krusk20$p.value
+
+##lADO ACOMETIDO
+#`Diferença LN /  T-CL`
+teste_mann9= wilcox.test(corrigido$`LN /  T-CL` ~ corrigido$`Lado acometido pela PF`, data = corrigido)
+teste_mann9_pvalor= teste_mann9$p.value
+
+#`Diferença CIO-CL
+teste_mann13= wilcox.test(corrigido$`CIO-CL` ~ corrigido$`Lado acometido pela PF`, data = corrigido)
+teste_mann13_pvalor= teste_mann13$p.value
+
+#`Diferença  CEO-CL`
+teste_mann10= wilcox.test(corrigido$`CEO-CL` ~ corrigido$`Lado acometido pela PF`, data = corrigido)
+teste_mann10_pvalor= teste_mann10$p.value
+
+#`Diferença LN/CIO-NA`
+teste_mann11= wilcox.test(corrigido$`LN/CIO-NA` ~ corrigido$`Lado acometido pela PF`, data = corrigido)
+teste_mann11_pvalor= teste_mann11$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_mann12= wilcox.test(corrigido$`Grau de incompetencia` ~ corrigido$`Lado acometido pela PF`, data = corrigido)
+teste_mann12_pvalor= teste_mann12$p.value
+
+##tIPO DE PARALISIA FACIAL
+#`Diferença LN /  T-CL`
+teste_mann5= wilcox.test(corrigido$`LN /  T-CL` ~ corrigido$`TIPO DE PARALISIA FACIAL`, data = corrigido)
+teste_mann5_pvalor= teste_mann5$p.value
+
+#`Diferença CIO-CL
+tteste2=t.test(corrigido$`CIO-CL` ~ corrigido$`TIPO DE PARALISIA FACIAL`, var.equal = TRUE)
+tteste2_pvalur= tteste2$p.value
+
+#`Diferença  CEO-CL`
+teste_mann6= wilcox.test(corrigido$`CEO-CL` ~ corrigido$`TIPO DE PARALISIA FACIAL`, data = corrigido)
+teste_mann6_pvalor= teste_mann6$p.value
+
+#`Diferença LN/CIO-NA`
+teste_mann7= wilcox.test(corrigido$`LN/CIO-NA` ~ corrigido$`TIPO DE PARALISIA FACIAL`, data = corrigido)
+teste_mann7_pvalor= teste_mann7$p.value
+
+
+#`diferença do grau de incompetencia`
+teste_mann8= wilcox.test(corrigido$`Grau de incompetencia` ~ corrigido$`TIPO DE PARALISIA FACIAL`, data = corrigido)
+teste_mann8_pvalor= teste_mann8$p.value
+
+PVALOR= c(pvalor_kruskal1,teste_mann1_pvalor,pvalor_kruskal6,pvalor_kruskal11,pvalor_kruskal16,teste_mann9_pvalor,teste_mann5_pvalor,pvalor_kruskal2,testet_pvalor,pvalor_kruskal7,pvalor_kruskal12,pvalor_kruskal17,teste_mann13_pvalor,tteste2_pvalur,pvalor_kruskal3,teste_mann2_pvalor,pvalor_kruskal8,pvalor_kruskal13,pvalor_kruskal18,teste_mann10_pvalor,teste_mann6_pvalor,pvalor_kruskal4,teste_mann3_pvalor,pvalor_kruskal9,pvalor_kruskal14,pvalor_kruskal19,teste_mann11_pvalor,teste_mann7_pvalor,pvalor_kruskal5,teste_mann4_pvalor,pvalor_kruskal10,pvalor_kruskal15,pvalor_kruskal20,teste_mann12_pvalor,teste_mann8_pvalor)
+
+testes= c("Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste t","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste t","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Kruskal-Wallis","Teste de Mann-Whitney","Teste de Mann-Whitney")
+variaveis3= rep(c("Grupo de tratamento","Sexo","HD","NIHSS","MIF", "Lado acometido", "Tipo de paralisia facial"),times=5)
+tabela = data.frame(variaveis3,testes,PVALOR)
+
+names(tabela) = c("Variáveis","Testes","P-valor")
+tabela %>% 
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
+  kbl(caption = "Testes de comparação de médias com relação as variáveis respostas") %>% 
+  pack_rows(index = c("Diferença LN/T-CL" = 7, "Diferença CIO-CL" = 7, "Diferença  CEO-CL" = 7,"Diferença LN/CIO-NA"= 7,"Diferença do grau de incompetencia"= 7)) %>%
+  kable_classic_2(full_width = F,font_size = 10) %>%
+  kable_styling(latex_options = "HOLD_position") %>% 
+  row_spec(0, bold = TRUE, italic = TRUE, hline_after = TRUE, font_size = 10, align = 'c') 
+```
+Nível de significância considerado: 0.20= 20%
+
+## Comparações múltiplas
+
+- Foi considerado para cada variável resposta, apenas as variáveis significativas
+
+- Nos casos não paramétricos, após o tesde de kruskal Wallis, foi utilizado para as comparações multiplas entre os tratamentos, o comando *kruskalmc()*
+
+### Diferença LN/T-CL
+
+\
+1) **HD** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+GRAFhd1<-ggplot(corrigido,aes(x = `HD`, y = `LN /  T-CL`, fill=  `HD`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/T-CL",
+       x = "HD", fill="HD",
+       title = "Figura 20- Boxplots sobre Diferença LN/T-CL por HD ") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+GRAFhd1 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) 
+
+```
+
+- Comparação múltiplas entre os tratamentos:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cm1 <- kruskalmc(corrigido$`LN /  T-CL` ~ factor(HD), probs =0.2, data= corrigido) #comparações multiplas para testes kuruskal wallis
+cm1 
+```
+
+\
+2) **MIF** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+GRAFmif<-ggplot(corrigido,aes(x = `MIF`, y = `LN /  T-CL`, fill=  `MIF`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/T-CL",
+       x = "Medida de independência funcional (MIF)", fill="MIF",
+       title = "Figura 21- Boxplots sobre Diferença LN/T-CL por MIF") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+GRAFmif + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+```
+- Comparação múltiplas entre os tratamentos:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#levels(corrigido$MIF)
+cm2 <- kruskalmc(corrigido$`LN /  T-CL` ~ factor(MIF), probs =0.2, data= corrigido) #comparações multiplas para testes kuruskal wallis
+cm2 
+```
+
+\
+3) **Lado acometido** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+grafflado1<-ggplot(corrigido,aes(x = `Lado acometido pela PF`, y = `LN /  T-CL`, fill=  `Lado acometido pela PF`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/T-CL",
+       x = " Lado acometido pela PF", fill="Lado acometido",
+       title = "Figura 22- Boxplots sobre Diferença LN/T-CL pelo \n Lado acometido") +  scale_fill_brewer(palette="BuPu")  + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grafflado1 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())+theme_bw()
+```
+
+
+### Diferença CIO-CL
+
+Variável normal (p valor = 0,1815)
+
+\
+1) **Sexo**
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+#shapiro.test(corrigido$`CIO-CL`)
+grafSEXO2<-ggplot(corrigido,aes(x = `Sexo`, y = corrigido$`CIO-CL`, fill=  `Sexo`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença CIO-CL",
+       x = "Sexo", fill="Sexo",
+       title = "Figura 23- Boxplots sobre Diferença CIO-CL por Sexo ") +  scale_fill_brewer(palette="BuPu")  + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grafSEXO2 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+\
+2) **Lado acometido** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+#shapiro.test(corrigido$`CIO-CL`)
+grafflado2<-ggplot(corrigido,aes(x = corrigido$`Lado acometido pela PF`, y = corrigido$`CIO-CL`, fill=  `Lado acometido pela PF`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença CIO-CL",
+       x = "Lado acometido pela PF", fill="Lado acometido",
+       title = "Figura 24- Boxplots sobre Diferença CIO-CL pelo \n Lado acometido") +  scale_fill_brewer(palette="BuPu")  + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grafflado2 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+\
+3) **Tipo de paralisia facial** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+#shapiro.test(corrigido$`CIO-CL`)
+grafftipo2<-ggplot(corrigido,aes(x = corrigido$`TIPO DE PARALISIA FACIAL`, y = corrigido$`CIO-CL`, fill= `TIPO DE PARALISIA FACIAL`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença CIO-CL",
+       x = "Tipo de paralisia facial", fill="Tipo de paralisia",
+       title = "Figura 25- Boxplots sobre Diferença CIO-CL pelo \n Tipo de paralisia") +  scale_fill_brewer(palette="BuPu")  + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grafftipo2 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+Para o calculo da Anova não foi considerado Sexo, lado acometido ou tipo de paralisia facial pois são variáveis de apenas 2 níveis
+
+### Diferença CEO-CL
+
+Nada significativo
+
+
+### Diferença LN/CIO-NA
+
+\
+1) **HD**
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+GRAFhd2<-ggplot(corrigido,aes(x = `HD`, y = `LN/CIO-NA` , fill=  `HD`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/CIO-NA",
+       x = "HD", fill="HD",
+       title = "Figura 26- Boxplots sobre Diferença LN/CIO-NA por \n HD") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+GRAFhd2 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) #VOU CORRIGIR ESSE BOXPLOT DEPOIS
+
+```
+
+- Comparação múltiplas entre os tratamentos:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#shapiro.test((corrigido$`LN/CIO-NA` ))
+cm4 <- kruskalmc(corrigido$`LN/CIO-NA` ~ factor(HD), data= corrigido, probs=0.2) #comparações multiplas para testes kuruskal wallis
+cm4 
+
+```
+
+\
+2) **NIHSS** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+GRAFNIHSS<-ggplot(corrigido,aes(x = `NIHSS`, y = `LN/CIO-NA` , fill=  `NIHSS`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/CIO-NA",
+       x = "Classificação pré intervenção (NIHSS) ", fill="NIHSS",
+       title = "Figura 27 - Boxplots sobre Diferença LN/CIO-NA por \n NIHSS") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+GRAFNIHSS + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) #VOU CORRIGIR ESSE BOXPLOT DEPOIS
+
+```
+
+- Comparação múltiplas entre os tratamentos:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#shapiro.test((corrigido$`LN/CIO-NA` ))
+cm7 <- kruskalmc(corrigido$`LN/CIO-NA` ~ factor(NIHSS), data= corrigido, probs=0.2) #comparações multiplas para testes kuruskal wallis
+cm7 
+```
+\
+3) **Lado acometido**
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+graflado3<-ggplot(corrigido,aes(x = corrigido$`Lado acometido pela PF`, y = `LN/CIO-NA` , fill=  `Lado acometido pela PF`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença LN/CIO-NA",
+       x = "Lado acometido pela PF", fill="Lado acometido",
+       title = "Figura 28 - Boxplots sobre Diferença LN/CIO-NA por \n Lado acometido pela PF") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+graflado3 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) #VOU CORRIGIR ESSE BOXPLOT DEPOIS
+
+```
+
+### Diferença do grau de incompetencia
+
+\
+1) **Grupo de tratamento**
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+grafgrupo<-ggplot(corrigido,aes(x = corrigido$Grupo, y = corrigido$`Grau de incompetencia` , fill=  Grupo)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença do grau de incompetência",
+       x = "Grupo de tratamento", fill="Grupo",
+       title = "Figura 29- Boxplots sobre Diferença Grau de \n Incompetência pelo Tratamento") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+grafgrupo + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) #VOU CORRIGIR ESSE BOXPLOT DEPOIS
+
+```
+
+- Comparação múltiplas entre os tratamentos:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#shapiro.test((corrigido$`LN/CIO-NA` ))
+cm5 <- kruskalmc(corrigido$`Grau de incompetencia` ~ factor(GRUPO), data= corrigido,probs=0.2) #comparações multiplas para testes kuruskal wallis
+cm5 
+```
+\
+2) **Tipo de paralisia facial** 
+
+```{r echo=FALSE, fig.align="center", fig.height=3.5, fig.width=5, message=FALSE, warning=FALSE}
+GRAFTIPO3<-ggplot(corrigido,aes(x = corrigido$`TIPO DE PARALISIA FACIAL`, y = corrigido$`Grau de incompetencia` , fill=  `TIPO DE PARALISIA FACIAL`)) +
+    geom_boxplot(alpha = 0.7) + labs(y = "Diferença do grau de incompetência",
+       x = "Tipo de paralisia facial", fill="Tipo de paralisia",
+       title = "Figura 30- Boxplots sobre Diferença Grau de \n Incompetência pelo tipo de paralisia ") +  scale_fill_brewer(palette="BuPu") + theme_bw()+ theme(axis.text = element_text(size = 7, colour = "black"),axis.title = element_text(size = 11, colour = "black"))
+
+GRAFTIPO3 + theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) #VOU CORRIGIR ESSE BOXPLOT DEPOIS
+
+```
+
+# Modelos
+
+## Modelo 1- diferença LN/T-CL
+
+```{r}
+anova_n_parametrica1= kruskal.test(modelo$`Diferença LN /  T-CL` ~ modelo$COMB_lado_hd, data = modelo)
+anova_n_parametrica1
+
+```
+
+
+```{r}
+anova_parametrica1= aov(modelo$`Diferença LN /  T-CL` ~ modelo$COMB_lado_hd, data = modelo)
+summary(anova_parametrica1)
+
+```
+
+## Modelo 2- Diferença  CIO-CL
+
+Sexo (0,0874)
+Lado acometido (0,0124)
+Tipo de paralisia facial (0,193)
+
+- Com grupo
+```{r}
+model <- aov(corrigido$`CIO-CL` ~ Grupo + Sexo + `Lado acometido pela PF` + `TIPO DE PARALISIA FACIAL`, data = corrigido)
+summary(model)
+```
+A partir da estatística F e seu valor-p abaixo de 0.05, temos embasamento estatístico para afirmar com grande confiança que as médias de Cortisol dos macacos difere entre os locais analisado.
+
+- Sem grupo
+
+```{r}
+model2 <- aov(corrigido$`CIO-CL` ~ Sexo + `Lado acometido pela PF` + `TIPO DE PARALISIA FACIAL`, data = corrigido)
+summary(model2)
+```
+
+## Modelo 4, diferença LN/CIO-NA
+```{r}
+
+anova_n_parametrica4= kruskal.test(modelo$`Diferença LN/CIO-NA`~ modelo$COMB_lado_hd, data = modelo)
+anova_n_parametrica4
+
+```
+
+## Modelo 5 
+
+```{r}
+a<-corrigido$`Grau de incompetencia`
+#summary(a)
+a<- a+3
+#ncol(corrigido)
+corrigido[,96]<-a
+mod = gamlss( a ~ Grupo + `TIPO DE PARALISIA FACIAL`,   data = na.omit(corrigido), trace = FALSE,family = NBF(mu.link = "log", sigma.link = "log", nu.link = "log"))
+```
+
